@@ -1,33 +1,75 @@
 <?php
 
 namespace App\Services;
+
 use Illuminate\Http\Request;
 use App\Models\Employee;
+
 class EmployeeService
 {
-    public static function getAllEmployees()
+    public function getAllEmployees()
     {
         return Employee::all();
     }
-    public static function getEmployeesBySearch(Request $request)
+    public function getEmployeesBySearch(Request $request)
     {
-        
+        $query = Employee::query();
+
+        if ($request->has('cpf')) {
+            $query->where('cpf', $request->input('cpf'));
+        }
+
+        if ($request->has('id')) {
+            $query->where('id', $request->input('id'));
+        }
+
+        if ($request->has('name')) {
+            $query->where('name', 'like', "%{$request->input('name')}%");
+        }
+
+        return $query->get();
     }
 
-    public static function getEmployeeById($id)
+    public  function getEmployeeById($id)
     {
-        
+        return Employee::findOrFail($id);
     }
-    public static function store(Request $request)
+    public  function store(Request $request)
     {
-        
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'cpf' => 'required|string|size:11|unique:employees,cpf',
+            'situation' => 'required|in:A,I',
+        ]);
+
+        $employee = Employee::create([
+            'name' => $validatedData['name'],
+            'cpf' => $validatedData['cpf'],
+            'situation' => $validatedData['situation'],
+        ]);
+
+        return $employee;
     }
-    public static function update($id)
+    public  function update($id, $request)
     {
-        
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'cpf' => 'required|string|size:11|unique:employees,cpf,' . $id,
+            'situation' => 'required|in:A,I',
+        ]);
+        $employee = Employee::findOrFail($id);
+        $employee->update([
+            'name' => $validatedData['name'],
+            'cpf' => $validatedData['cpf'],
+            'situation' => $validatedData['situation'],
+        ]);
+
+        return $employee;
     }
-    public static function destroy($id)
+    public function destroy($id)
     {
-        
+        $employee = Employee::findOrFail($id);
+        $employee->delete();
+        return response()->json(null, 204);
     }
 }
